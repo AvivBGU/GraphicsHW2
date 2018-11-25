@@ -107,14 +107,14 @@ vec4 draw_plane(vec3 intersection_point, vec4 plane, int index){
 
 
 
-vec4 colorCalc( vec4 intersectionPoint, vec4 K_A)
+vec4 colorCalc( vec4 intersectionPoint, vec3 K_A)
 {
 
 	float S_I = 1;
 	int positional_light_index = 0;
-	vec4 color = vec4(0);
-	vec4 I_E = vec4(0);
-	vec4 Sigma = vec4(0); //diffusion  from equation
+	vec3 color = vec3(0);
+	vec3 I_E = vec3(0);
+	vec3 Sigma = vec3(0); //diffusion  from equation
 	vec3 K_S = vec3(0.7, 0.7, 0.7);
 	vec3 L_vec_to_light = vec3(0);
 	vec3 R_reflected = vec3(0);
@@ -172,9 +172,9 @@ void main()
 				int(intersection_index_point.x));
 	}
 	else {
-		color = colorCalc(intersection_index_point,  objColors[int(intersection_index_point.x)]);
+		color = colorCalc(intersection_index_point,  objColors[int(intersection_index_point.x)].xyz);
 	}
-	gl_FragColor = color;
+	gl_FragColor = vec4(color.xyz, ambient.w);
 }
  
 

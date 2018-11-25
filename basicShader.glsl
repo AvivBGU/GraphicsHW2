@@ -5,7 +5,7 @@ uniform vec4[20] objects;
 uniform vec4[20] objColors;
 uniform vec4[10] lightsDirection;
 uniform vec4[10] lightsIntensity;
-uniform vec4[10] lightPosition;
+uniform vec4[10] lightsPosition;
 uniform ivec4 sizes; //{number of objects , number of lights , width, hight}  
 
 in vec3 position1; //Pixels in the picture
@@ -93,7 +93,7 @@ vec4 draw_plane(vec3 intersection_point, vec4 plane, int index){
 	if ((intersection_point.x < 0 && intersection_point.y > 0) || 
 		(intersection_point.x > 0 && intersection_point.y < 0)){
 		if ((mod(int(1.5*intersection_point.x),2) != mod(int(1.5*intersection_point.y),2)) ){
-			ret_vec	*= 0.5;
+			ret_vec	*= 0.5; //Change this with the lights.
 		}
 	}
 	else if ((mod(int(1.5*intersection_point.x),2) == mod(int(1.5*intersection_point.y),2)) ){
@@ -119,14 +119,14 @@ vec4 colorCalc( vec4 intersectionPoint, vec4 K_A)
 	color +=K_A; //I = I_E + K_A*I_A
 	for (int i = 0; i < sizes[1]; i++){
 		S_I = 1;
-		if(intersection(intersectionPoint.yzw,(lightPosition[i].xyz - intersectionPoint.yzw)) == vec4(0)){ //this is the shadow part, wasnt sure how to check if there is intersection so it doesnt work
+		if(intersection(intersectionPoint.yzw,(lightsPosition[i].xyz - intersectionPoint.yzw)) == vec4(0)){ //this is the shadow part, wasnt sure how to check if there is intersection so it doesnt work
 		S_I = 0;
 		}
-		I_D.x += K_A.x*(dot(normal,(-normalize(-lightPosition[i].xyz + intersectionPoint.xyz)))*(lightsIntensity[i].x)); //sigma for each color component
+		I_D.x += K_A.x*(dot(normal,(-normalize(-lightsPosition[i].xyz + intersectionPoint.xyz)))*(lightsIntensity[i].x)); //sigma for each color component
 		//       ^^^ - from Tamir's instruction as viewed in the document, i assumed K_D from the formula is K_D, if you think its wrong change it.
-		I_D.y += K_A.y*(dot(normal,(-normalize(-lightPosition[i].xyz + intersectionPoint.xyz)))*(lightsIntensity[i].y));
-		I_D.z += K_A.z*(dot(normal,(-normalize(-lightPosition[i].xyz + intersectionPoint.xyz)))*(lightsIntensity[i].z));
-		I_D.w += K_A.w*(dot(normal,(-normalize(-lightPosition[i].xyz + intersectionPoint.xyz)))*(lightsIntensity[i].w));
+		I_D.y += K_A.y*(dot(normal,(-normalize(-lightsPosition[i].xyz + intersectionPoint.xyz)))*(lightsIntensity[i].y));
+		I_D.z += K_A.z*(dot(normal,(-normalize(-lightsPosition[i].xyz + intersectionPoint.xyz)))*(lightsIntensity[i].z));
+		I_D.w += K_A.w*(dot(normal,(-normalize(-lightsPosition[i].xyz + intersectionPoint.xyz)))*(lightsIntensity[i].w));
 
 	}
 	if(S_I == 0)

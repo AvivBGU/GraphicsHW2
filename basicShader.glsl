@@ -107,7 +107,7 @@ vec4 draw_plane(vec3 intersection_point, vec4 plane, int index){
 
 
 
-vec4 colorCalc( vec4 intersectionPoint, vec3 K_A)
+vec3 colorCalc( vec4 intersectionPoint, vec3 K_A)
 {
 
 	float S_I = 1;
@@ -129,12 +129,9 @@ vec4 colorCalc( vec4 intersectionPoint, vec3 K_A)
 	for (int i = 0; i < sizes[1]; i++){
 		//S_I = 1; shadow variable.
 		if (lightsDirection[i].w != 0.0){ //Checks if the light is positional or sun-like
-			//L_vec_to_light = normalize(lightsPosition[positional_light_index++].xyz - intersectionPoint.yzw);
-			/* if angle of light to intersection is more than the angle of the positional light, S_I = 0;
-					use dicrectional light and angle to determine if object is in the cone.
-			*/
+			L_vec_to_light = normalize(lightsPosition[positional_light_index++].xyz - intersectionPoint.yzw);
 		} else {					   
-			L_vec_to_light = normalize(lightsDirection[i].xyz);
+			//L_vec_to_light = normalize(lightsDirection[i].xyz - intersectionPoint.yzw);
 		}
 		
 		/*if(intersection(intersectionPoint.yzw,(lightsPosition[i].xyz - intersectionPoint.yzw)) == vec4(0)){
@@ -142,10 +139,8 @@ vec4 colorCalc( vec4 intersectionPoint, vec3 K_A)
 		}*/
 		Sigma += K_A*(dot(normal, L_vec_to_light));
 		R_reflected = normalize(L_vec_to_light - 2*normal*(dot(L_vec_to_light, normal))); 
-		Sigma += K_S*(pow(dot(normalize(intersectionPoint.yzw-eye.xyz), R_reflected), objColors[int(intersectionPoint)].w));
+		Sigma += K_S*(pow(dot(normalize(intersectionPoint.yzw-eye.xyz), R_reflected), objColors[int(intersectionPoint.x)].w));
 		Sigma *= (lightsIntensity[i])*S_I;
-
-
 
 		//^The syntax above is valid.
 	}
@@ -172,9 +167,9 @@ void main()
 				int(intersection_index_point.x));
 	}
 	else {
-		color = colorCalc(intersection_index_point,  objColors[int(intersection_index_point.x)].xyz);
+		color.xyz = colorCalc(intersection_index_point,  objColors[int(intersection_index_point.x)].xyz);
 	}
-	gl_FragColor = vec4(color.xyz, ambient.w);
+	gl_FragColor = color;
 }
  
 

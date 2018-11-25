@@ -80,3 +80,7 @@ glfw2D/glfw2D/glfw2D\.vcxproj\.filters
 glfw2D/glfw2D/glfw2D\.vcxproj\.user
 
 glfw2D/glfw2D/res/shaders/mbrot\.glsl
+
+mbrot\.glsl
+
+texShader\.glsl

@@ -111,27 +111,48 @@ vec4 colorCalc( vec4 intersectionPoint, vec4 K_A)
 {
 
 	float S_I = 1;
-	vec3 normal = normalize(intersectionPoint.yzw - objects[int(intersectionPoint)].xyz); //a normal to the sphere, i only incorporated colorCalc to spheres as of now, will probably need to recieve normal as a parameter for generalization with planes
-    vec4 color = vec4(0);
+	int positional_light_index = 0;
+	vec4 color = vec4(0);
 	vec4 I_E = vec4(0);
-	//vec3 K_S = vec3(0.7);
-	vec4 I_D = vec4(0); //diffusion shit from equation
-	color +=K_A; //I = I_E + K_A*I_A
-	for (int i = 0; i < sizes[1]; i++){
-		S_I = 1;
-		if(intersection(intersectionPoint.yzw,(lightsPosition[i].xyz - intersectionPoint.yzw)) == vec4(0)){ //this is the shadow part, wasnt sure how to check if there is intersection so it doesnt work
-		S_I = 0;
-		}
-		I_D.x += K_A.x*(dot(normal,(-normalize(-lightsPosition[i].xyz + intersectionPoint.xyz)))*(lightsIntensity[i].x)); //sigma for each color component
-		//       ^^^ - from Tamir's instruction as viewed in the document, i assumed K_D from the formula is K_D, if you think its wrong change it.
-		I_D.y += K_A.y*(dot(normal,(-normalize(-lightsPosition[i].xyz + intersectionPoint.xyz)))*(lightsIntensity[i].y));
-		I_D.z += K_A.z*(dot(normal,(-normalize(-lightsPosition[i].xyz + intersectionPoint.xyz)))*(lightsIntensity[i].z));
-		I_D.w += K_A.w*(dot(normal,(-normalize(-lightsPosition[i].xyz + intersectionPoint.xyz)))*(lightsIntensity[i].w));
+	vec4 Sigma = vec4(0); //diffusion  from equation
+	vec3 K_S = vec3(0.7, 0.7, 0.7);
+	vec3 L_vec_to_light = vec3(0);
+	vec3 R_reflected = vec3(0);
+	vec3 normal = vec3(0);
+	if (objects[int(intersectionPoint)].w > 0){
+		normal = normalize(intersectionPoint.yzw - objects[int(intersectionPoint)].xyz);
+	} else {
+		normal = normalize(objects[int(intersectionPoint)].xyz);
+	} //Caculate normal to a plane.
 
+	color +=I_E + K_A*ambient; //I = I_E + K_A*I_A
+	for (int i = 0; i < sizes[1]; i++){
+		//S_I = 1; shadow variable.
+		if (lightsDirection[i].w != 0.0){ //Checks if the light is positional or sun-like
+			//L_vec_to_light = normalize(lightsPosition[positional_light_index++].xyz - intersectionPoint.yzw);
+			/* if angle of light to intersection is more than the angle of the positional light, S_I = 0;
+					use dicrectional light and angle to determine if object is in the cone.
+			*/
+		} else {					   
+			L_vec_to_light = normalize(lightsDirection[i].xyz);
+		}
+		
+		/*if(intersection(intersectionPoint.yzw,(lightsPosition[i].xyz - intersectionPoint.yzw)) == vec4(0)){
+		//	S_I = 0;
+		}*/
+		Sigma += K_A*(dot(normal, L_vec_to_light));
+		R_reflected = normalize(L_vec_to_light - 2*normal*(dot(L_vec_to_light, normal))); 
+		Sigma += K_S*(pow(dot(normalize(intersectionPoint.yzw-eye.xyz), R_reflected), objColors[int(intersectionPoint)].w));
+		Sigma *= (lightsIntensity[i])*S_I;
+
+
+
+		//^The syntax above is valid.
 	}
-	if(S_I == 0)
-	{return vec4(0);} // an if that proves that the if in line 122 doesnt work, also used for testing it
-	color += I_D*S_I;
+	//if(S_I == 0) {
+	//==//	return vec4(0);
+	//} // an if that proves that the if in line 122 doesnt work, also used for testing it
+	color += Sigma*S_I;
     return color;
 }
 

@@ -29,6 +29,9 @@ vec3 calc_intersection_with_plane(vec3 sourcePoint, vec3 v, vec4 plane){
 	vec3 Q0P0 = (point_on_plane - sourcePoint)/dot(norm_v, norm_plane);
 	float t = dot(norm_plane, Q0P0);
 	vec3 intersection_point = sourcePoint + t*norm_v;
+	if (t < 0){
+		intersection_point = vec3(-10, -10, -10);
+	}
 	if (point_on_plane.xyz == vec3(-10, -10, -10)){
 		intersection_point = vec3(-10, -10, -10);
 	}
@@ -67,7 +70,7 @@ vec4 intersection(vec3 sourcePoint, vec3 v)
 {
 	float min_dist = 10; //dist is 1-0.
 	vec3 intersection_point = vec3(0);
-	vec4 index_and_intersection = vec4(0);
+	vec4 index_and_intersection = vec4(0,0,0,0);
 	int index_of_obj = -1;
 	for(int i = 0; i < sizes[0]; i++){ //Iterate through objects to find the min intersection.
 		if (objects[i].w < 0){
@@ -119,34 +122,38 @@ vec3 colorCalc( vec4 intersectionPoint, vec3 K_A)
 	vec3 L_vec_to_light = vec3(0);
 	vec3 R_reflected = vec3(0);
 	vec3 normal = vec3(0);
+	vec3 K_D = vec3(K_A);
+	float DL_positional_light_calc = 0;
 	if (objects[int(intersectionPoint)].w > 0){
 		normal = normalize(intersectionPoint.yzw - objects[int(intersectionPoint)].xyz);
 	} else {
 		normal = normalize(objects[int(intersectionPoint)].xyz);
-	} //Caculate normal to a plane.
+	} //Calculate normal to a plane.
 
-	color +=I_E + K_A*ambient; //I = I_E + K_A*I_A
+	color.xyz +=I_E + K_A*ambient.xyz; //I = I_E + K_A*I_A
 	for (int i = 0; i < sizes[1]; i++){
-		//S_I = 1; shadow variable.
 		if (lightsDirection[i].w != 0.0){ //Checks if the light is positional or sun-like
-			L_vec_to_light = normalize(lightsPosition[positional_light_index++].xyz - intersectionPoint.yzw);
-		} else {					   
-			//L_vec_to_light = normalize(lightsDirection[i].xyz - intersectionPoint.yzw);
+			L_vec_to_light = normalize(lightsPosition[positional_light_index].xyz - intersectionPoint.yzw);
+			//if (dot(normal, L_vec_to_light) < lightsPosition[positional_light_index].w){
+			//	S_I = 0;
+			//} //Check if the spot is in the cone of the spotlight. BETA
+
+		} else {
+			//L_vec_to_light = normalize(lightsDirection[i].xyz);
 		}
 		
-		/*if(intersection(intersectionPoint.yzw,(lightsPosition[i].xyz - intersectionPoint.yzw)) == vec4(0)){
+		//Checks if a given point is obstructed.
+		//if (intersection(intersectionPoint.yzw, L_vec_to_light) != vec4(0,0,0,0)){
 		//	S_I = 0;
-		}*/
-		Sigma += K_A*(dot(normal, L_vec_to_light));
+		//}
+		
+		Sigma += K_D*(dot(normal, L_vec_to_light));
 		R_reflected = normalize(L_vec_to_light - 2*normal*(dot(L_vec_to_light, normal))); 
 		Sigma += K_S*(pow(dot(normalize(intersectionPoint.yzw-eye.xyz), R_reflected), objColors[int(intersectionPoint.x)].w));
-		Sigma *= (lightsIntensity[i])*S_I;
+		Sigma *= (lightsIntensity[i].xyz)*S_I;
 
 		//^The syntax above is valid.
 	}
-	//if(S_I == 0) {
-	//==//	return vec4(0);
-	//} // an if that proves that the if in line 122 doesnt work, also used for testing it
 	color += Sigma*S_I;
     return color;
 }
@@ -169,7 +176,7 @@ void main()
 	else {
 		color.xyz = colorCalc(intersection_index_point,  objColors[int(intersection_index_point.x)].xyz);
 	}
-	gl_FragColor = color;
+	gl_FragColor = vec4(color.xyz, 1);
 }
  
 

@@ -93,7 +93,7 @@ vec4 draw_plane(vec3 intersection_point, vec4 plane, int index){
 	if ((intersection_point.x < 0 && intersection_point.y > 0) || 
 		(intersection_point.x > 0 && intersection_point.y < 0)){
 		if ((mod(int(1.5*intersection_point.x),2) != mod(int(1.5*intersection_point.y),2)) ){
-			ret_vec	*= 0.8;
+			ret_vec	*= 0.5; //Change this with the lights.
 		}
 	}
 	else if ((mod(int(1.5*intersection_point.x),2) == mod(int(1.5*intersection_point.y),2)) ){

@@ -122,9 +122,9 @@ vec3 colorCalc(vec4 view_point,  vec4 intersectionPoint, vec3 K_A) {
 	vec3 normal = vec3(0);
 	vec3 K_D = vec3(K_A);
 	float DL_positional_light_calc = 0;
-	if (objects[int(intersectionPoint)].w > 0){
+	if (objects[int(intersectionPoint.x)].w > 0){
 		normal = normalize(intersectionPoint.yzw - objects[int(intersectionPoint)].xyz);
-	} else {
+	} else { //A plane
 		normal = normalize(objects[int(intersectionPoint.x)].xyz);
 		if ((intersectionPoint.y < 0 && intersectionPoint.z > 0) || (intersectionPoint.y > 0 && intersectionPoint.z < 0)){
 			if ((mod(int(1.5*intersectionPoint.y),2) != mod(int(1.5*intersectionPoint.z),2)) ){
@@ -149,9 +149,10 @@ vec3 colorCalc(vec4 view_point,  vec4 intersectionPoint, vec3 K_A) {
 		}
 		
 		//Checks if a given point is obstructed.
-		//if (intersection(intersectionPoint.yzw, L_vec_to_light) != vec4(0,0,0,0)){
-		//	S_I = 0;
-		//}
+		//This shit kinda works.
+//		if (intersection(intersectionPoint.yzw, L_vec_to_light) != vec4(0,0,0,0)){
+//			S_I = 0;
+//		}
 		
 		Sigma += K_D*(dot(normal, L_vec_to_light));
 		R_reflected = normalize(-L_vec_to_light - 2*normal*(dot(-L_vec_to_light, normal))); 
@@ -168,14 +169,14 @@ void main()
 {	
 	vec4 color = vec4(0);
 	vec4 intersection_index_point = intersection(eye.xyz, position1 - eye.xyz);
-	if (objects[int(intersection_index_point.x)].w < 0){
-		color = draw_plane(intersection_index_point.yzw, 
-			objects[int(intersection_index_point.x)], 
-				int(intersection_index_point.x));
-	}
-	else {
+//	if (objects[int(intersection_index_point.x)].w < 0){
+//		color = draw_plane(intersection_index_point.yzw, 
+//			objects[int(intersection_index_point.x)], 
+//				int(intersection_index_point.x));
+//	}
+//	else {
 		color.xyz = colorCalc(eye, intersection_index_point,  objColors[int(intersection_index_point.x)].xyz);
-	}
+//	}
 	gl_FragColor = vec4(color.xyz, 1);
 }
  

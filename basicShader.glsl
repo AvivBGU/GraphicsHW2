@@ -125,7 +125,15 @@ vec3 colorCalc(vec4 view_point,  vec4 intersectionPoint, vec3 K_A) {
 	if (objects[int(intersectionPoint)].w > 0){
 		normal = normalize(intersectionPoint.yzw - objects[int(intersectionPoint)].xyz);
 	} else {
-		normal = normalize(objects[int(intersectionPoint)].xyz);
+		normal = normalize(objects[int(intersectionPoint.x)].xyz);
+		if ((intersectionPoint.y < 0 && intersectionPoint.z > 0) || (intersectionPoint.y > 0 && intersectionPoint.z < 0)){
+			if ((mod(int(1.5*intersectionPoint.y),2) != mod(int(1.5*intersectionPoint.z),2)) ){
+					K_D = vec3(0.5);
+				} 
+		}   else if ((mod(int(1.5*intersectionPoint.y),2) == mod(int(1.5*intersectionPoint.z),2)) ){
+			K_D = vec3(0.5);
+		}
+		
 	} //Calculate normal to a plane.
 
 	color += I_E + K_A*ambient.xyz; //I = I_E + K_A*I_A
@@ -135,7 +143,7 @@ vec3 colorCalc(vec4 view_point,  vec4 intersectionPoint, vec3 K_A) {
 			//if (dot(normal, L_vec_to_light) < lightsPosition[positional_light_index].w){ //Change it to the correct direction.
 			//	S_I = 0;
 			//} //Check if the spot is in the cone of the spotlight. BETA
-
+			
 		} else {
 			L_vec_to_light = normalize(-lightsDirection[i].xyz);
 		}
@@ -148,19 +156,13 @@ vec3 colorCalc(vec4 view_point,  vec4 intersectionPoint, vec3 K_A) {
 		Sigma += K_D*(dot(normal, L_vec_to_light));
 		R_reflected = normalize(-L_vec_to_light - 2*normal*(dot(-L_vec_to_light, normal))); 
 		Sigma += K_S*(pow(dot(normalize(intersectionPoint.yzw-view_point.xyz), R_reflected), objColors[int(intersectionPoint.x)].w));
-		Sigma *= (lightsIntensity[i].xyz)*S_I; //TODO Change the eye to something that allows a recursive function.
+		Sigma *= (lightsIntensity[i].xyz)*S_I; 
 
 		//^The syntax above is valid.
 	}
 	color += Sigma*S_I;
     return color;
 }
-
-/*
-	find intersection -> meaning that we will want to find the relevent pixel affiliated with a specific shape.
-	find color -> according to phong model.
-	draw the thing.
-*/
 
 void main()
 {	

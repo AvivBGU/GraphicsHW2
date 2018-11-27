@@ -9,6 +9,7 @@ uniform vec4[10] lightsPosition;
 uniform ivec4 sizes; //{number of objects , number of lights , width, hight}  
 
 in vec3 position1; //Pixels in the picture
+const float FPI_PRECISION = 0.0001;
 
 vec4 calc_intersection_with_plane(vec3 sourcePoint, vec3 direction, vec4 plane){
 	vec3 point_on_plane;
@@ -29,10 +30,7 @@ vec4 calc_intersection_with_plane(vec3 sourcePoint, vec3 direction, vec4 plane){
 	vec3 Q0P0 = (point_on_plane - sourcePoint)/dot(norm_direction, norm_plane);
 	float t = dot(norm_plane, Q0P0);
 	vec4 intersection_point = vec4(sourcePoint + t*norm_direction, 0);
-	if (t < 0){ //we're intersecting the plane behind us.
-		intersection_point = vec4(0,0,0,-1);
-	}
-	if (point_on_plane.xyz == vec3(-10, -10, -10)){
+	if (t <= FPI_PRECISION){
 		intersection_point = vec4(0,0,0,-1);
 	}
 	return (intersection_point);									
@@ -64,18 +62,20 @@ vec4 calc_intersection_with_sphere(vec3 sourcePoint, vec3 direction, vec4 sphere
 			sol = (t1 > t2) ? t2 : t1;
 		}
 	}
+	if (sol <= FPI_PRECISION){
+			return returned_point;
+		}
 	returned_point.xyz = sourcePoint + norm_direction*sol;
-	if (!(distance(returned_point.xyz, sphere.xyz) - sphere.w > 0.0001)){
+	if (!(distance(returned_point.xyz, sphere.xyz) - sphere.w >= 0.0001)){
 		returned_point.w = 0;
 	}
 	return returned_point;
 }
 
-vec4 intersection(vec3 sourcePoint, vec3 v)
-{
+vec4 intersection(vec3 sourcePoint, vec3 v, int index) {
 	float min_dist = 100000; //dist is 1-0.
 	vec4 intersection_point = vec4(0);
-	vec4 intersection_and_index = vec4(0,0,0,0);
+	vec4 intersection_and_index = vec4(0,0,0,-1);
 	int index_of_obj = -1;
 	for(int i = 0; i < sizes[0]; i++){ //Iterate through objects to find the min intersection.
 		if (objects[i].w < 0){
@@ -93,31 +93,13 @@ vec4 intersection(vec3 sourcePoint, vec3 v)
 	return intersection_and_index;
 }
 
-vec4 draw_plane(vec3 intersection_point, vec4 plane, int index){
-	vec4 ret_vec  = objColors[index];
-	if ((intersection_point.x < 0 && intersection_point.y > 0) || 
-		(intersection_point.x > 0 && intersection_point.y < 0)){
-		if ((mod(int(1.5*intersection_point.x),2) != mod(int(1.5*intersection_point.y),2)) ){
-			ret_vec	*= 0.5; //Change this with the lights.
-		}
-	}
-	else if ((mod(int(1.5*intersection_point.x),2) == mod(int(1.5*intersection_point.y),2)) ){
-		ret_vec	*= 0.5;
-	}
-	return ret_vec;
-}
-
-
-
-
-
-
 vec3 colorCalc(vec4 view_point,  vec4 intersectionPoint, vec3 K_A, int recursion_counter) {
 	float S_I = 1;
 	int positional_light_index = 0;
 	vec3 color = vec3(0);
 	vec3 I_E = vec3(0);
 	vec3 Sigma = vec3(0); 
+	vec3 Temp_Sigma = vec3(0);
 	vec3 K_S = vec3(0.7, 0.7, 0.7);
 	vec3 L_vec_to_light = vec3(0);
 	vec3 R_reflected = vec3(0);
@@ -127,7 +109,8 @@ vec3 colorCalc(vec4 view_point,  vec4 intersectionPoint, vec3 K_A, int recursion
 	if (objects[int(intersectionPoint.w)].w > 0){
 		normal = normalize(intersectionPoint.xyz - objects[int(intersectionPoint.w)].xyz);
 	} else { //A plane
-		normal = normalize(objects[int(intersectionPoint.w)].xyz);
+		normal = -normalize(objects[int(intersectionPoint.w)].xyz);
+		
 		if ((intersectionPoint.x < 0 && intersectionPoint.y > 0) || (intersectionPoint.x > 0 && intersectionPoint.y < 0)){
 			if ((mod(int(1.5*intersectionPoint.x),2) != mod(int(1.5*intersectionPoint.y),2)) ){
 				K_D *= 0.5;
@@ -139,32 +122,33 @@ vec3 colorCalc(vec4 view_point,  vec4 intersectionPoint, vec3 K_A, int recursion
 
 	color += I_E + K_A*ambient.xyz; //I = I_E + K_A*I_A
 	for (int i = 0; i < sizes[1]; i++){
+		S_I = 1.0;
 		if (lightsDirection[i].w != 0.0){ //Checks if the light is positional or sun-like
 			L_vec_to_light = normalize(lightsPosition[positional_light_index].xyz - intersectionPoint.xyz);
-//			if (dot(lightsDirection[i].xyz - intersectionPoint.xyz, L_vec_to_light.xyz) > lightsPosition[positional_light_index++].w){ //Change it to the correct direction.
-//				S_I = 0;
-//			} //Check if the spot is in the cone of the spotlight. BETA
+			if (dot(normalize(lightsDirection[i].xyz), -L_vec_to_light) <= lightsPosition[positional_light_index++].w){
+				S_I = 0;
+			} else {} //Check if the spot is in the cone of the spotlight. BETA
 			
 		} else {
-			L_vec_to_light = normalize(-lightsDirection[i].xyz);
+			L_vec_to_light = -normalize(lightsDirection[i].xyz);
 		}
 		
 		//Checks if a given point is obstructed.
-		//This shit kinda works.
-//		vec4 intersection_check = intersection(intersectionPoint.xyz, L_vec_to_light);
-//		float fpi_correction = 0.0000000000001;
-//		if (abs(intersection_check.x) >= fpi_correction || abs(intersection_check.y) >= fpi_correction ||
-//			abs(intersection_check.z) >= fpi_correction || abs(intersection_check.w) >= fpi_correction){
-//			S_I = 0;
-//		}
+		vec4 intersection_check = intersection(intersectionPoint.xyz, L_vec_to_light, int(intersectionPoint.w));
+		if (intersection_check.w  > -1){
+			S_I = 0;
+		}
 		
-		Sigma += K_D*(dot(normal, L_vec_to_light));
-		R_reflected = normalize(-L_vec_to_light - 2*normal*(dot(-L_vec_to_light, normal))); 
-		Sigma += K_S*(pow(dot(normalize(intersectionPoint.xyz-view_point.xyz), R_reflected), objColors[int(intersectionPoint.w)].w));
-		Sigma *= (lightsIntensity[i].xyz)*S_I; 
+		Temp_Sigma += clamp(K_D*(dot(normal, L_vec_to_light)), 0, 1);
+		R_reflected = normalize(reflect(L_vec_to_light, normal));
+		Temp_Sigma += clamp(K_S*(pow(dot(normalize(intersectionPoint.xyz-view_point.xyz), R_reflected), 
+						objColors[int(intersectionPoint.w)].w)), 0, 1);
+		Temp_Sigma *= lightsIntensity[i].xyz;
+		Temp_Sigma *= S_I;
+		Sigma += clamp(Temp_Sigma,0 ,1);
 	}
-	color += Sigma*S_I;
-    return color;
+	color += clamp(Sigma, 0, 1);
+    return clamp(color, 0, 1);
 }
 
 vec3 recursive_colorCalc(vec4 view_point,  vec4 intersectionPoint, vec3 K_A, int recursion_counter){
@@ -177,17 +161,8 @@ vec3 recursive_colorCalc(vec4 view_point,  vec4 intersectionPoint, vec3 K_A, int
 
 void main()
 {	
-	vec4 color = vec4(0);
-	vec4 intersection_index_point = intersection(eye.xyz, position1 - eye.xyz);
-//	if (objects[int(intersection_index_point.x)].w < 0){
-//		color = draw_plane(intersection_index_point.xyz, 
-//			objects[int(intersection_index_point.x)], 
-//				int(intersection_index_point.x));
-//	}
-//	else {
-		color.xyz = colorCalc(eye, intersection_index_point,  objColors[int(intersection_index_point.w)].xyz, 0);
-//	}
-	gl_FragColor = vec4(color.xyz, 1);
+	vec3 color = vec3(0);
+	vec4 intersection_index_point = intersection(eye.xyz, position1 - eye.xyz, -1);
+	color = colorCalc(eye, intersection_index_point,  objColors[int(intersection_index_point.w)].xyz, 0);
+	gl_FragColor = vec4(color, 1);
 }
- 
-
